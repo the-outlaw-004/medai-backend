@@ -5,8 +5,9 @@ const {
   generateAccessToken,
   generateRefreshToken,
   storeRefreshToken,
-  verifyRefreshToken
+  verifyRefreshToken,
 } = require("../utils/jwt");
+const { deleteByUserId } = require("../services/refreshTokenService");
 const router = express.Router();
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || 12, 10);
@@ -68,10 +69,7 @@ router.post("/login", async (req, res) => {
 
 router.post("/refresh", async (req, res) => {
   try {
-    console.log("reachting to refresh");
     const token = req.cookies?.refresh_token;
-    console.log("cookies", req.cookies);
-    console.log("token", token);
 
     if (!token) {
       return res.status(401).json({ message: "Refresh token missing" });
@@ -98,7 +96,7 @@ router.post("/refresh", async (req, res) => {
 
 router.post("/logout", async (req, res) => {
   try {
-    const token = req.cookies?.refreshToken;
+    const token = req.cookies?.refresh_token;
 
     if (token) {
       try {
@@ -106,15 +104,9 @@ router.post("/logout", async (req, res) => {
         const userId = payload.userId;
         if (userId) {
           // remove all refresh tokens for user (simple revocation strategy)
-          await db.query("DELETE FROM refresh_tokens WHERE user_id=$1", [
-            userId,
-          ]);
+          await deleteByUserId(userId);
         }
       } catch (error) {}
-    } else if (req.body && req.body.userId) {
-      await db.query("DELETE FROM refresh_tokens WHERE user_id=$1", [
-        req.body.userId,
-      ]);
     }
 
     res.clearCookie("refresh_token", {
