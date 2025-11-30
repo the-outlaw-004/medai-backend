@@ -1,13 +1,21 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const { createUser, findByEmail } = require("../services/userService");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  storeRefreshToken,
+  verifyRefreshToken
+} = require("../utils/jwt");
 const router = express.Router();
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || 12, 10);
-const ACCESS_TOKEN_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES || 900; // 15 min
-const JWT_ACCESS_SECRET =
-  process.env.JWT_ACCESS_SECRET || "this_is_secret";
+const ACCESS_TOKEN_EXPIRES = parseInt(
+  process.env.ACCESS_TOKEN_EXPIRES || "900",
+  10
+);
+const REFRESH_TOKEN_EXPIRES =
+  parseInt(process.env.REFRESH_TOKEN_EXPIRES || "604800", 10) * 1000;
 
 router.post("/signup", async (req, res) => {
   try {
@@ -36,12 +44,87 @@ router.post("/login", async (req, res) => {
     if (!valid) return res.status(401).json({ error: "Invalid Credentials" });
 
     const payload = { userId: user.id, email: user.email };
-    const accessToken = jwt.sign(payload, JWT_ACCESS_SECRET, {
-      expiresIn: parseInt(ACCESS_TOKEN_EXPIRES),
+    // const accessToken = jwt.sign(payload, JWT_ACCESS_SECRET, {
+    //   expiresIn: parseInt(ACCESS_TOKEN_EXPIRES),
+    // });
+    const accessToken = generateAccessToken(payload);
+
+    const refreshToken = generateRefreshToken(payload);
+
+    await storeRefreshToken(user.id, refreshToken);
+
+    res.cookie("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: REFRESH_TOKEN_EXPIRES,
     });
-    res.json({ accessToken });
+
+    res.json({ accessToken, expiresIn: ACCESS_TOKEN_EXPIRES });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/refresh", async (req, res) => {
+  try {
+    console.log("reachting to refresh");
+    const token = req.cookies?.refresh_token;
+    console.log("cookies", req.cookies);
+    console.log("token", token);
+
+    if (!token) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
+
+    let decoded;
+    try {
+      decoded = verifyRefreshToken(token);
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    const newAccessToken = generateAccessToken({ userId: decoded.userId });
+
+    return res.json({
+      accessToken: newAccessToken,
+      expiresIn: ACCESS_TOKEN_EXPIRES,
+    });
+  } catch (err) {
+    console.error("Refresh error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/logout", async (req, res) => {
+  try {
+    const token = req.cookies?.refreshToken;
+
+    if (token) {
+      try {
+        const payload = verifyRefreshToken(token);
+        const userId = payload.userId;
+        if (userId) {
+          // remove all refresh tokens for user (simple revocation strategy)
+          await db.query("DELETE FROM refresh_tokens WHERE user_id=$1", [
+            userId,
+          ]);
+        }
+      } catch (error) {}
+    } else if (req.body && req.body.userId) {
+      await db.query("DELETE FROM refresh_tokens WHERE user_id=$1", [
+        req.body.userId,
+      ]);
+    }
+
+    res.clearCookie("refresh_token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+    return res.json({ message: "Logged out successfully" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
