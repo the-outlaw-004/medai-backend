@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const db = require("./src/db");
+const authRoutes = require("./src/routes/auth")
 
 const app = express();
 app.use(express.json());
@@ -9,6 +10,9 @@ app.use(morgan("tiny"));
 app.get("/", (req, res) =>
   res.json({ ok: true, time: new Date().toISOString() })
 );
+
+app.use("/auth/", authRoutes)
+
 app.get("/health/db", async (req, res) => {
   try {
     const r = await db.query("SELECT 1+1 AS ok");
