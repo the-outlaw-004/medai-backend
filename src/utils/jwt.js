@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const db = require("../db");
+const db = require("../config/db");
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS);
 
 const refreshExpiry =

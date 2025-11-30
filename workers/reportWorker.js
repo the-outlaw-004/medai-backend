@@ -1,6 +1,6 @@
 const { Worker } = require("bullmq");
 const fs = require("fs");
-const db = require("../src/db");
+const db = require("../src/config/db");
 const dotenv = require("dotenv");
 const Tesseract = require("tesseract.js");
 const pdfParse = require("pdf-parse");
@@ -21,7 +21,6 @@ function redactPII(text) {
 
 async function analyzeWithAI(redactedText) {
   if (useMockAI) {
-    console.log("🔄 Using MOCK AI… simulating delay...");
     await new Promise((res) => setTimeout(res, 5000));
 
     return {
@@ -50,7 +49,6 @@ async function analyzeWithAI(redactedText) {
 const reportWorker = new Worker(
   "reportQueue",
   async (job) => {
-    console.log("Processing job:", job.data);
 
     const { reportId, filePath, fileType } = job.data;
 
@@ -63,31 +61,22 @@ const reportWorker = new Worker(
       const result = await Tesseract.recognize(filePath, "eng");
       extractedText = result.data.text;
     } else if (fileType === "application/pdf") {
-      console.log("PDF step 1: entering block");
-
-      console.log("PDF step 2: reading file", filePath);
       let buffer;
       try {
         buffer = fs.readFileSync(filePath);
-        console.log("PDF step 2 OK: file read");
       } catch (e) {
         console.error("PDF FILE READ ERROR:", e);
         throw e;
       }
 
-      console.log("PDF step 3: running pdf-parse");
-      console.time("pdf-parse");
       let data;
       try {
         data = await pdfParse(buffer);
-        console.log("PDF step 3 OK: pdf parsed");
       } catch (e) {
         console.error("PDF PARSE ERROR:", e);
         throw e;
       }
-      console.timeEnd("pdf-parse");
 
-      console.log("PDF step 4: extracted text length:", data.text?.length);
       extractedText = data.text;
     } else {
       console.warn("⚠ Unknown fileType — defaulting to PDF extraction");
@@ -100,9 +89,7 @@ const reportWorker = new Worker(
     // STEP 2: PII REDACTION
     // -----------------------
 
-    console.log("extractedText", extractedText);
     const redactedText = redactPII(extractedText);
-    console.log("redactedText", redactedText);
 
     // -----------------------
     // STEP 3: AI PROCESSING
@@ -110,7 +97,6 @@ const reportWorker = new Worker(
     let aiResult;
     try {
       aiResult = await analyzeWithAI(redactedText);
-      console.log("aiREsult", aiResult);
     } catch (err) {
       console.error("AI Error:", err);
       aiResult = { error: "AI failed" };

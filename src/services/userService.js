@@ -1,4 +1,4 @@
-const db = require('../db')
+const db = require('../config/db')
 
 async function createUser(email, passwordHash) {
   const { rows } = await db.query('INSERT INTO users (email, password_hash) VALUES ($1,$2) RETURNING id, email, created_at', [email, passwordHash]);

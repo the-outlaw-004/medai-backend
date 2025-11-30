@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const upload = require("../utils/upload");
 const requireAuth = require("../middleware/auth");
-const db = require("../db");
+const db = require("../config/db");
 const reportQueue = require("../queues/reportQueue");
 
 router.get("/", requireAuth, async (req, res) => {
@@ -72,7 +72,6 @@ router.post(
 
       const userId = req.user.userId;
       const filePath = req.file.path;
-      console.log("file check", req.file);
 
       // Save to DB (status: pending)
       const insertResult = await db.query(
