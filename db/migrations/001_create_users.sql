@@ -23,3 +23,12 @@ CREATE TABLE IF NOT EXISTS reports (
   result JSONB,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- ⭐ Update reports table to latest schema
+ALTER TABLE reports
+  ADD COLUMN IF NOT EXISTS extracted_text TEXT,
+  ADD COLUMN IF NOT EXISTS ai_summary JSONB;
+
+-- Remove old column "result" if exists
+ALTER TABLE reports
+  DROP COLUMN IF EXISTS result;

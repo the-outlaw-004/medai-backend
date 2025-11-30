@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
+    "dev": "concurrently \"nodemon server.js\" \"nodemon workers/index.js\"",
+    "start": "nodemon server.js",
+    "start:worker": "nodemon workers/index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +15,7 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "bullmq": "^5.65.0",
+    "concurrently": "^9.2.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -22,7 +25,10 @@
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "nodemon": "^3.1.11",
+    "openai": "^6.9.1",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.16.3",
+    "tesseract.js": "^6.0.1",
     "uuid": "^8.3.2"
   }
 }
