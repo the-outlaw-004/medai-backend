@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const rateLimit = require("express-rate-limit");
 const { createUser, findByEmail } = require("../services/userService");
 const {
   generateAccessToken,
@@ -18,6 +19,14 @@ const ACCESS_TOKEN_EXPIRES = parseInt(
 const REFRESH_TOKEN_EXPIRES =
   parseInt(process.env.REFRESH_TOKEN_EXPIRES || "604800", 10) * 1000;
 
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: "Too many login attempts. Try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post("/signup", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -32,7 +41,7 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)
