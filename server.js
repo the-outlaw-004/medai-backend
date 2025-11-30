@@ -3,7 +3,8 @@ const express = require("express");
 const morgan = require("morgan");
 const db = require("./src/db");
 const cookieParser = require("cookie-parser");
-const authRoutes = require("./src/routes/auth")
+const authRoutes = require("./src/routes/auth");
+const reportRoutes = require("./src/routes/reports");
 
 const app = express();
 app.use(express.json());
@@ -13,7 +14,8 @@ app.get("/", (req, res) =>
   res.json({ ok: true, time: new Date().toISOString() })
 );
 
-app.use("/auth/", authRoutes)
+app.use("/auth", authRoutes);
+app.use("/report", reportRoutes);
 
 app.get("/health/db", async (req, res) => {
   try {
