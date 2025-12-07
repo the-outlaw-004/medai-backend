@@ -1,7 +1,11 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const rateLimit = require("express-rate-limit");
-const { createUser, findByEmail } = require("../services/userService");
+const {
+  createUser,
+  findByEmail,
+  findByUserId,
+} = require("../services/userService");
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -9,6 +13,7 @@ const {
   verifyRefreshToken,
 } = require("../utils/jwt");
 const { deleteByUserId } = require("../services/refreshTokenService");
+const requireAuth = require("../middleware/auth");
 const router = express.Router();
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || 12, 10);
@@ -33,6 +38,9 @@ router.post("/signup", async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ error: "Email and Password required" });
     const found = await findByEmail(email);
+    if (found) {
+      return res.status(409).json({ error: "Email already exists" });
+    }
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
     const user = await createUser(email, hashed);
     res.status(201).json({ id: user.id, email: user.email });
@@ -91,7 +99,10 @@ router.post("/refresh", async (req, res) => {
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
-    const newAccessToken = generateAccessToken({ userId: decoded.userId });
+    const newAccessToken = generateAccessToken({
+      userId: decoded.userId,
+      email: decoded.email,
+    });
 
     return res.json({
       accessToken: newAccessToken,
@@ -100,6 +111,17 @@ router.post("/refresh", async (req, res) => {
   } catch (err) {
     console.error("Refresh error:", err);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/me", requireAuth, async (req, res) => {
+  try {
+    const userId = req.body.id;
+    const user = await findByUserId(userId);
+
+    return res.json(user.rows[0]);
+  } catch (err) {
+    return res.status(500).json({ error: "Server error" });
   }
 });
 

@@ -88,37 +88,23 @@ npm install
 
 ## 🔑 Environment Variables
 
-Copy example file:
+Create a `.env` file in the root directory. You can copy the sample below:
 
-```sh
-cp .env.example .env
-```
-
-### **Required .env variables**
-
-```
-# App
+```ini
 PORT=4000
-
-# PostgreSQL
-DATABASE_URL=
-
-# Redis
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-REDIS_PASSWORD=your_password
-
-# OpenAI
-OPENAI_API_KEY=your_openai_api_key
-      OR
-USE_MOCK_AI=true
-
-# Authentication
+DATABASE_URL=postgresql://user:password@localhost:5432/medai
 BCRYPT_SALT_ROUNDS=12
-JWT_ACCESS_SECRET=secret_here
-ACCESS_TOKEN_EXPIRES=900
-JWT_REFRESH_SECRET=refresh_secret_here
-REFRESH_TOKEN_EXPIRES=604800
+JWT_ACCESS_SECRET=your_access_secret
+ACCESS_TOKEN_EXPIRES=15m
+JWT_REFRESH_SECRET=your_refresh_secret
+REFRESH_TOKEN_EXPIRES=7d
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+USE_MOCK_AI=true
+NODE_ENV=development
+OPENAI_API_KEY=your_openai_key
+```
 
 ## 🗄️ Database Setup
 
@@ -134,6 +120,29 @@ Run the below command to create required tables:
 ### using psql (or use docker exec into container)
 psql postgres://user:pass@localhost:5432/medai -f db/migrations/001_create_users.sql
 
+
+---
+
+## 🏃‍♂️ Running the Project
+
+Follow these steps to start all components:
+
+### 1. Start Infrastructure
+*   **PostgreSQL**: Ensure your PostgreSQL server is running.
+*   **Redis**: Start the Redis server (e.g., `redis-server`).
+
+### 2. Start Backend Server & Worker
+In the root directory, run:
+```sh
+npm run dev
+```
+This command starts both the Express server and the BullMQ worker concurrently.
+
+### 3. Start Frontend
+*(Note: Frontend is a separate application)*
+1.  Navigate to the frontend repository.
+2.  Install dependencies: `npm install`
+3.  Start the development server: `npm start`
 
 ---
 

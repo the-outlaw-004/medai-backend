@@ -9,4 +9,11 @@ async function findByEmail(email) {
   return rows[0];
 }
 
-module.exports = { createUser, findByEmail };
+async function findByUserId(userId) {
+  const { rows } = await db.query('SELECT id, email FROM users WHERE id=$1', [userId]);
+  return rows[0];
+}
+
+
+
+module.exports = { createUser, findByEmail, findByUserId };
